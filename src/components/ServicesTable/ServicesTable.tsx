@@ -61,7 +61,7 @@ const ServicesTable = () => {
   return (
     <>
       {services.length !== 0 && (
-        <Table variant="simple" size={'md'}>
+        <Table marginBottom={'20px'} variant="simple" size={'md'}>
           <Thead>
             <Tr>
               <Th>
@@ -118,6 +118,7 @@ const ServicesTable = () => {
           </Tbody>
         </Table>
       )}
+
       <Button
         colorScheme="red"
         mr={3}

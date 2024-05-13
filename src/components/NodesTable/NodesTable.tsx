@@ -58,7 +58,7 @@ const NodesTable: React.FC<NodesTableProps> = ({
   return (
     <>
       {nodes.length !== 0 && (
-        <Table variant="simple" size={'md'}>
+        <Table marginBottom={'20px'} variant="simple" size={'md'}>
           <Thead>
             <Tr>
               <Th>
