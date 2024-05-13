@@ -1,51 +1,118 @@
-import React from 'react';
-import {Button, Checkbox, Flex, Table, Tbody, Td, Th, Thead, Tr} from "@chakra-ui/react";
+import React, { useEffect, useState } from 'react';
+import {
+  Button,
+  Checkbox,
+  Table,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+} from '@chakra-ui/react';
+import nodeStore from '../../stores/Nodes';
+import serviceStore from '../../stores/Services';
+import { observer } from 'mobx-react-lite';
 
-const NodesTable = () => {
-    return (
+interface NodesTableProps {
+  setDisabled: (arg: boolean) => void;
+  setTabIndex: (arg: number) => void;
+}
+
+const NodesTable: React.FC<NodesTableProps> = ({
+  setDisabled,
+  setTabIndex: setIndex,
+}) => {
+  const { nodes, clusterId } = nodeStore;
+  const [selectedNodes, setSelectedNodes] = useState<number[]>([]);
+
+  useEffect(() => {
+    setSelectedNodes([]);
+  }, [clusterId]);
+
+  const handleSelectAll = () => {
+    setSelectedNodes(nodes.map((node) => node.Id));
+  };
+
+  const handleStartSelected = async () => {
+    for (const nodeId of selectedNodes) {
+      clusterId && (await nodeStore.start(clusterId, nodeId));
+    }
+  };
+
+  const handleStopSelected = async () => {
+    for (const nodeId of selectedNodes) {
+      clusterId && (await nodeStore.stop(clusterId, nodeId));
+    }
+  };
+  const handleNodeSelect = (nodeId: number) => {
+    // Выбрать или отменить выбор узла
+    setSelectedNodes((prevSelected) => {
+      if (prevSelected.includes(nodeId)) {
+        return prevSelected.filter((id) => id !== nodeId);
+      } else {
+        return [...prevSelected, nodeId];
+      }
+    });
+  };
+
+  return (
+    <>
+      {nodes.length !== 0 && (
         <Table variant="simple" size={'md'}>
-            <Thead>
-                <Tr >
-                    <Th>
-                        <Checkbox
-                            onChange={(e) => {
+          <Thead>
+            <Tr>
+              <Th>
+                <Checkbox onChange={handleSelectAll} />
+              </Th>
+              <Th>Имя хоста</Th>
+              <Th>IP адрес</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {nodes.map((node) => (
+              <React.Fragment key={node.Id}>
+                <Tr>
+                  <Td>
+                    <Checkbox
+                      isChecked={selectedNodes.includes(node.Id)}
+                      onChange={() => handleNodeSelect(node.Id)}
+                    />
+                  </Td>
+                  <Td
+                    onClick={() => {
+                      console.log(node.Id);
 
-                            }}
-                        />
-                    </Th>
-                    <Th>Имя хоста</Th>
-                    <Th>IP адрес</Th>
-                    <Th>Сервисы</Th>
+                      clusterId && serviceStore.getData(node.Id, clusterId);
+                      setDisabled(false);
+                      setIndex(1);
+                    }}
+                  >
+                    {node.hostname}
+                  </Td>
+                  <Td>{node.ip}</Td>
                 </Tr>
-            </Thead>
-            <Tbody>
-                {/*{hosts.map((host, index) => (*/}
-                <React.Fragment >
-                    <Tr>
-                        <Td>
-                            <Checkbox
-                            />
-                        </Td>
-                        <Td>hostname</Td>
-                        <Td>hostIp</Td>
-
-                        <Td>
-                            <Flex gap={'9px'}>
-                                <Button border={'1px solid var(--chakra-colors-red-600)'} color={'var(--chakra-colors-red-500)'} bg={'#fff'} px={'8px'} py={'2px'} fontSize={'14px'} _hover={{bg:'#fff'}}>
-                                    ETL
-                                </Button>
-                                <Button border={'1px solid var(--chakra-colors-green-500)'} color={'var(--chakra-colors-green-600)'} bg={'#fff'} px={'8px'} py={'2px'} fontSize={'14px'} _hover={{bg:'#fff'}}>
-                                    DATABASE
-                                </Button>
-                            </Flex>
-                        </Td>
-                    </Tr>
-
-                </React.Fragment>
-                {/*))}*/}
-            </Tbody>
+              </React.Fragment>
+            ))}
+          </Tbody>
         </Table>
-    );
+      )}
+      <Button
+        colorScheme="red"
+        mr={3}
+        onClick={handleStopSelected}
+        disabled={selectedNodes.length === 0}
+      >
+        STOP
+      </Button>
+      <Button
+        colorScheme="green"
+        onClick={handleStartSelected}
+        disabled={selectedNodes.length === 0}
+      >
+        START
+      </Button>
+    </>
+  );
 };
 
-export default NodesTable;
+export default observer(NodesTable);
