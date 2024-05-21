@@ -4,48 +4,54 @@ import {
   Checkbox,
   Table,
   Tbody,
-  Td,
   Th,
   Thead,
   Tr,
 } from '@chakra-ui/react';
-import nodeStore from '../../stores/Nodes';
+import nodeStore, { NodeData } from '../../stores/Nodes';
 import serviceStore from '../../stores/Services';
 import { observer } from 'mobx-react-lite';
+import clusterStore from '../../stores/Clusters';
+import NodeRow from './NodeRow';
 
-interface NodesTableProps {
-  setDisabled: (arg: boolean) => void;
-  setTabIndex: (arg: number) => void;
-}
-
-const NodesTable: React.FC<NodesTableProps> = ({
-  setDisabled,
-  setTabIndex: setIndex,
-}) => {
-  const { nodes, clusterId } = nodeStore;
+const NodesTable: React.FC = () => {
   const [selectedNodes, setSelectedNodes] = useState<number[]>([]);
+  const { activeElement: clusterId } = clusterStore;
+  const { data } = nodeStore;
+  const [nodes, setNodes] = useState<NodeData[]>([]);
 
   useEffect(() => {
     setSelectedNodes([]);
-  }, [clusterId]);
+    if (!clusterId) return;
+    const data = nodeStore.getNodes(clusterId);
+
+    setNodes(data ? data.nodes : []);
+  }, [data, clusterId]);
 
   const handleSelectAll = () => {
-    setSelectedNodes(nodes.map((node) => node.Id));
+    setSelectedNodes(nodes?.map((node) => node.Id));
   };
 
   const handleStartSelected = async () => {
+    if (!clusterId) return;
     for (const nodeId of selectedNodes) {
-      clusterId && (await nodeStore.start(clusterId, nodeId));
+      const data = await nodeStore.start(clusterId, nodeId);
+      if (data) {
+        serviceStore.setData(data, nodeId);
+      }
     }
   };
 
   const handleStopSelected = async () => {
+    if (!clusterId) return;
     for (const nodeId of selectedNodes) {
-      clusterId && (await nodeStore.stop(clusterId, nodeId));
+      const data = await nodeStore.stop(clusterId, nodeId);
+      if (data) {
+        serviceStore.setData(data, nodeId);
+      }
     }
   };
   const handleNodeSelect = (nodeId: number) => {
-    // Выбрать или отменить выбор узла
     setSelectedNodes((prevSelected) => {
       if (prevSelected.includes(nodeId)) {
         return prevSelected.filter((id) => id !== nodeId);
@@ -66,32 +72,17 @@ const NodesTable: React.FC<NodesTableProps> = ({
               </Th>
               <Th>Имя хоста</Th>
               <Th>IP адрес</Th>
+              <Th>Сервисы</Th>
             </Tr>
           </Thead>
           <Tbody>
             {nodes.map((node) => (
-              <React.Fragment key={node.Id}>
-                <Tr>
-                  <Td>
-                    <Checkbox
-                      isChecked={selectedNodes.includes(node.Id)}
-                      onChange={() => handleNodeSelect(node.Id)}
-                    />
-                  </Td>
-                  <Td
-                    onClick={() => {
-                      console.log(node.Id);
-
-                      clusterId && serviceStore.getData(node.Id, clusterId);
-                      setDisabled(false);
-                      setIndex(1);
-                    }}
-                  >
-                    {node.hostname}
-                  </Td>
-                  <Td>{node.ip}</Td>
-                </Tr>
-              </React.Fragment>
+              <NodeRow
+                key={node.Id}
+                node={node}
+                selectedNodes={selectedNodes}
+                handleNodeSelect={handleNodeSelect}
+              />
             ))}
           </Tbody>
         </Table>

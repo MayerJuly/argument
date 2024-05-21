@@ -1,44 +1,42 @@
-import React, { useEffect, useState } from 'react';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from '@chakra-ui/react';
 import ServicesTable from '../ServicesTable/ServicesTable';
 import NodesTable from '../NodesTable/NodesTable';
-import nodeStore from '../../stores/Nodes';
+
 import { observer } from 'mobx-react-lite';
-import serviceStore from '../../stores/Services';
+import clusterStore from '../../stores/Clusters';
+
+import nodeStore from '../../stores/Nodes';
+import { useEffect, useState } from 'react';
 
 const HomeTable = () => {
-  const [isServiceDisabled, setIsServiceDisabled] = useState<boolean>(true);
-  const { clusterId } = nodeStore;
-
+  const { activeElement: clusterId } = clusterStore;
+  const { activeElement: nodeId } = nodeStore;
   const [tabIndex, setTabIndex] = useState(0);
-  const handleTabsChange = (index: number) => {
-    setTabIndex(index);
-  };
+
   useEffect(() => {
-    setTabIndex(0);
-  }, [clusterId]);
-  useEffect(() => {
-    serviceStore.isOpen = Boolean(tabIndex);
-  }, [tabIndex]);
+    if (nodeId) {
+      setTabIndex(1);
+    } else {
+      setTabIndex(0);
+    }
+  }, [nodeId]);
 
   return (
     <>
       {clusterId && (
-        <Tabs index={tabIndex} onChange={handleTabsChange} width={'100%'}>
-          <TabList width={'100%'} border={0}>
+        <Tabs index={tabIndex} width={'100%'}>
+          <TabList
+            onClick={() => nodeStore.setActive(null)}
+            width={'100%'}
+            border={0}
+          >
             <Tab isDisabled={!Boolean(clusterId)}>Ноды</Tab>
-
-            <Tab isDisabled={isServiceDisabled} ml={'auto'}>
-              Сервисы
-            </Tab>
+            {nodeId && <Tab>Сервисы</Tab>}
           </TabList>
 
           <TabPanels>
             <TabPanel>
-              <NodesTable
-                setDisabled={setIsServiceDisabled}
-                setTabIndex={setTabIndex}
-              />
+              <NodesTable />
             </TabPanel>
             <TabPanel>
               <ServicesTable />

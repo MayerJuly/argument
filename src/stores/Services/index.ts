@@ -1,5 +1,6 @@
-import { makeAutoObservable } from 'mobx';
+import { action, makeObservable, observable } from 'mobx';
 
+import { BaseStore } from '../baseClass';
 import $api from '../../api/api';
 
 export interface ServiceData {
@@ -10,50 +11,76 @@ export interface ServiceData {
   version: string;
   description: string;
 }
+export interface ServicesI {
+  services: ServiceData[];
+  parentId: number;
+}
 
-class ServiceStore {
-  services: ServiceData[] = [];
-  nodeId: number | null = null;
-  isOpen = false;
+class ServiceStore extends BaseStore<ServicesI, ServiceData> {
   constructor() {
-    makeAutoObservable(this);
+    super('/service');
+    makeObservable(this, {
+      data: observable,
+      activeElement: observable,
+      setData: action,
+      setActive: action,
+      start: action,
+      stop: action,
+      changeState: action,
+    });
   }
 
-  getData = async (nodeId: number, clusterId: number) => {
-    try {
-      const response = await $api.get<ServiceData[]>(
-        `/service/${clusterId}/${nodeId}`
-      );
-      this.nodeId = nodeId;
-      this.services = response.data;
-    } catch (error) {
-      console.error('Service fetch failed:', error);
+  setData = async (response: ServiceData[], parentId?: number) => {
+    if (parentId === undefined) {
+      throw new Error('parentId is required for ServiceStore');
     }
+
+    const existingIndex = this.data.findIndex(
+      (elem) => elem.parentId === parentId
+    );
+
+    if (existingIndex > -1) {
+      this.data[existingIndex].services = response;
+    } else {
+      this.data.push({ services: response, parentId });
+    }
+    this.data = [...this.data];
   };
 
-  start = async (clusterId: number, serviceId: number) => {
+  start = async (clusterId: number, nodeId: number, serviceId: number) => {
     try {
       await $api.get<ServiceData[]>(
-        `/start/${clusterId}/${this.nodeId}/${serviceId}`
+        `/start/${clusterId}/${nodeId}/${serviceId}`
       );
-      this.changeState(serviceId, 'STARTED');
+      this.changeState('STARTED', serviceId, nodeId);
     } catch (error) {
       console.error('Service start failed:', error);
     }
   };
 
-  stop = async (clusterId: number, serviceId: number) => {
+  getServices = (parentId: number) => {
+    return this.data.find((elem) => elem.parentId === parentId);
+  };
+  stop = async (clusterId: number, nodeId: number, serviceId: number) => {
     try {
       await $api.get<ServiceData[]>(
-        `/stop/${clusterId}/${this.nodeId}/${serviceId}`
+        `/stop/${clusterId}/${nodeId}/${serviceId}`
       );
-      this.changeState(serviceId, 'STOPPED');
+      this.changeState('STOPPED', serviceId, nodeId);
     } catch (error) {
       console.error('Service stop failed:', error);
     }
   };
-  private changeState = (serviceId: number, state: 'STOPPED' | 'STARTED') => {
-    const currentService = this.services.find((elem) => elem.id === serviceId);
+
+  changeState = (
+    state: 'STOPPED' | 'STARTED',
+    serviceId: number,
+    nodeId: number
+  ) => {
+    const currentNode = this.data.find((elem) => elem.parentId === nodeId);
+    const currentService = currentNode?.services.find(
+      (elem) => elem.id === serviceId
+    );
     if (currentService) {
       currentService.state = state;
     }
