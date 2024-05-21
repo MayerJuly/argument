@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Button,
   Flex,
+  Link,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -14,6 +15,7 @@ import {
 import serviceStore, { ServiceData } from '../../stores/Services';
 import nodeStore from '../../stores/Nodes';
 import { observer } from 'mobx-react-lite';
+import clusterStore from '../../stores/Clusters';
 
 interface ServiceItemModalI {
   isOpen: boolean;
@@ -22,7 +24,9 @@ interface ServiceItemModalI {
 }
 
 const ServiceItemModal = ({ isOpen, onClose, service }: ServiceItemModalI) => {
-  const { clusterId } = nodeStore;
+  const { activeElement: nodeId } = nodeStore;
+  const { activeElement: clusterId } = clusterStore;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
@@ -32,6 +36,7 @@ const ServiceItemModal = ({ isOpen, onClose, service }: ServiceItemModalI) => {
         <ModalBody>
           <Flex flexDirection={'column'} gap={'10px'}>
             <Button
+              cursor={'default'}
               border={
                 service.state === 'STOPPED'
                   ? '1px solid var(--chakra-colors-red-600)'
@@ -53,7 +58,9 @@ const ServiceItemModal = ({ isOpen, onClose, service }: ServiceItemModalI) => {
 
             <Text>{service.description}</Text>
 
-            <div>{service.url}</div>
+            <Link isExternal _hover={{ bg: '#E0F9FE' }} href={service.url}>
+              {service.url}
+            </Link>
           </Flex>
         </ModalBody>
 
@@ -62,7 +69,8 @@ const ServiceItemModal = ({ isOpen, onClose, service }: ServiceItemModalI) => {
             colorScheme="red"
             mr={3}
             onClick={() => {
-              clusterId && serviceStore.stop(clusterId, service.id);
+              if (clusterId && nodeId)
+                serviceStore.stop(clusterId, nodeId, service.id);
             }}
           >
             STOP
@@ -70,7 +78,8 @@ const ServiceItemModal = ({ isOpen, onClose, service }: ServiceItemModalI) => {
           <Button
             colorScheme="green"
             onClick={() => {
-              clusterId && serviceStore.start(clusterId, service.id);
+              if (clusterId && nodeId)
+                serviceStore.start(clusterId, nodeId, service.id);
             }}
           >
             START

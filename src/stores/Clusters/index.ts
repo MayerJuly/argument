@@ -1,39 +1,47 @@
-import { makeAutoObservable } from 'mobx';
+import { action, makeObservable, observable } from 'mobx';
 
 import $api from '../../api/api';
 import { ServiceData } from '../Services';
+import { BaseStore } from '../baseClass';
 
 export interface ClusterData {
   id: number;
   name: string;
 }
 
-class ClusterStore {
-  clusters: ClusterData[] = [];
-
+class ClusterStore extends BaseStore<ClusterData, ClusterData> {
   constructor() {
-    makeAutoObservable(this);
+    super('/cluster');
+    makeObservable(this, {
+      data: observable,
+      activeElement: observable,
+      setData: action,
+      setActive: action,
+      start: action,
+      stop: action,
+    });
   }
 
-  getData = async () => {
-    try {
-      const response = await $api.get<ClusterData[]>('/cluster/');
-
-      this.clusters = response.data;
-    } catch (error) {
-      console.error('Cluster fetch failed:', error);
-    }
+  setData = async (response: ClusterData[]) => {
+    this.data = response;
   };
+
   start = async (clusterId: number) => {
     try {
-      await $api.get<ServiceData[]>(`/cluster/start/${clusterId}/`);
+      const response = await $api.get<ServiceData[]>(
+        `/cluster/start/${clusterId}/`
+      );
+      return response.data;
     } catch (error) {
       console.error('Cluster start failed:', error);
     }
   };
   stop = async (clusterId: number) => {
     try {
-      await $api.get<ServiceData[]>(`/cluster/stop/${clusterId}/`);
+      const response = await $api.get<ServiceData[]>(
+        `/cluster/stop/${clusterId}/`
+      );
+      return response.data;
     } catch (error) {
       console.error('Cluster stop failed:', error);
     }

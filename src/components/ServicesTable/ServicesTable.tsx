@@ -3,6 +3,7 @@ import {
   Button,
   Checkbox,
   Flex,
+  Link,
   Table,
   Tbody,
   Td,
@@ -15,12 +16,14 @@ import ServiceItemModal from '../ServiceItemModal/ServiceItemModal';
 import serviceStore, { ServiceData } from '../../stores/Services';
 import { observer } from 'mobx-react-lite';
 import nodeStore from '../../stores/Nodes';
+import clusterStore from '../../stores/Clusters';
 
 const ServicesTable = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const { services, nodeId } = serviceStore;
-  const { clusterId } = nodeStore;
+  const [services, setServices] = useState<ServiceData[]>([]);
+  const { activeElement: nodeId } = nodeStore;
+  const { activeElement: clusterId } = clusterStore;
   const [currentService, setCurrentService] = useState<ServiceData | null>(
     null
   );
@@ -32,6 +35,11 @@ const ServicesTable = () => {
 
   useEffect(() => {
     setSelectedServices([]);
+    if (!nodeId) return;
+
+    const data = serviceStore.getServices(nodeId);
+    console.log(data);
+    setServices(data ? data.services : []);
   }, [nodeId]);
 
   const handleSelectAll = () => {
@@ -39,14 +47,16 @@ const ServicesTable = () => {
   };
 
   const handleStartSelected = async () => {
+    if (!clusterId || !nodeId) return;
     for (const serviceId of selectedServices) {
-      clusterId && (await serviceStore.start(clusterId, serviceId));
+      await serviceStore.start(clusterId, nodeId, serviceId);
     }
   };
 
   const handleStopSelected = async () => {
+    if (!clusterId || !nodeId) return;
     for (const serviceId of selectedServices) {
-      clusterId && (await serviceStore.stop(clusterId, serviceId));
+      await serviceStore.stop(clusterId, nodeId, serviceId);
     }
   };
   const handleNodeSelect = (nodeId: number) => {
@@ -75,7 +85,7 @@ const ServicesTable = () => {
           </Thead>
           <Tbody>
             {services.map((service) => (
-              <React.Fragment>
+              <React.Fragment key={service.id}>
                 <Tr>
                   <Td>
                     <Checkbox
@@ -86,12 +96,21 @@ const ServicesTable = () => {
                   <Td onClick={() => handleOpenModal(service)}>
                     {service.name}
                   </Td>
-                  <Td>{service.url}</Td>
+                  <Td>
+                    <Link
+                      isExternal
+                      _hover={{ color: 'blue' }}
+                      href={service.url}
+                    >
+                      {service.url}
+                    </Link>
+                  </Td>
                   <Td>{service.version}</Td>
 
                   <Td>
                     <Flex gap={'9px'}>
                       <Button
+                        cursor={'default'}
                         border={
                           service.state === 'STOPPED'
                             ? '1px solid var(--chakra-colors-red-600)'

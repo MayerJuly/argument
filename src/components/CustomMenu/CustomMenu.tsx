@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 import { AiOutlineCluster } from 'react-icons/all';
 import clusterStore from '../../stores/Clusters';
@@ -6,13 +5,12 @@ import nodeStore from '../../stores/Nodes';
 import { observer } from 'mobx-react-lite';
 
 const CustomMenu = () => {
-  const [activeElement, setActiveElement] = useState<null | number>(null);
+  const { data: clusters, activeElement } = clusterStore;
 
-  const { clusters } = clusterStore;
-
-  useEffect(() => {
-    activeElement && nodeStore.getData(activeElement);
-  }, [activeElement]);
+  const handleClick = async (id: number) => {
+    await nodeStore.getData(id);
+    clusterStore.setActive(id);
+  };
 
   return (
     <>
@@ -45,6 +43,7 @@ const CustomMenu = () => {
         >
           {clusters.map((cluster) => (
             <Box
+              cursor={'pointer'}
               fontSize={'15px'}
               fontWeight={'600'}
               textTransform={'uppercase'}
@@ -57,7 +56,7 @@ const CustomMenu = () => {
               bg={`${activeElement === cluster.id ? '#E0F9FE' : '#fff'}`}
               _hover={{ bg: '#E0F9FE' }}
               marginBottom={'10px'}
-              onClick={() => setActiveElement(cluster.id)}
+              onClick={() => handleClick(cluster.id)}
             >
               {cluster.name}
             </Box>
